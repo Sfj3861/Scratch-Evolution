@@ -91,6 +91,11 @@ function renderBlockLibrary(filter = "") {
     const small = document.createElement("small");
     small.textContent = description;
     button.append(title, small);
+    button.draggable = true;
+    button.addEventListener("dragstart", event => {
+      event.dataTransfer.effectAllowed = "copy";
+      event.dataTransfer.setData("application/x-scratch-evolution-block", JSON.stringify({name, description, category}));
+    });
     button.addEventListener("click", () => addBlock(name, description, category));
     $("#blockLibrary").append(button);
   });
@@ -200,6 +205,23 @@ function moveBlock(index, offset) {
   renderScript();
   updateSaveStatus("Cambios sin guardar");
 }
+$("#scriptStack").addEventListener("dragover", event => {
+  if (event.dataTransfer.types.includes("application/x-scratch-evolution-block")) event.preventDefault();
+});
+$("#scriptStack").addEventListener("drop", event => {
+  const payload = event.dataTransfer.getData("application/x-scratch-evolution-block");
+  if (!payload) return;
+  event.preventDefault();
+  try {
+    const block = JSON.parse(payload);
+    if (block && typeof block.name === "string" && typeof block.category === "string") {
+      addBlock(block.name, block.description || "", block.category);
+      log("Bloque añadido mediante arrastrar y soltar.", "success");
+    }
+  } catch {
+    log("No se pudo añadir ese bloque.", "warn");
+  }
+});
 function renderObjects() {
   const list = $("#objectList");
   list.innerHTML = "";
@@ -599,4 +621,4 @@ renderBlockLibrary();
 renderObjects();
 selectObject(state.selectedId);
 drawScene();
-log("Scratch Evolution v0.1.0 inicializado.");
+log("Scratch Evolution v0.2.0 inicializado.");
