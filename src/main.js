@@ -163,7 +163,7 @@ function renderScript() {
     label.textContent = block.name;
     el.append(controls, label);
 
-    const values = [...block.name.matchAll(/-?\\d+(?:\\.\\d+)?/g)];
+    const values = [...block.name.matchAll(/-?\d+(?:\.\d+)?/g)];
     if (values.length) {
       const params = document.createElement("div");
       params.className = "script-parameters";
@@ -173,7 +173,7 @@ function renderScript() {
         input.value = match[0];
         input.setAttribute("aria-label", "Parámetro " + (parameterIndex + 1) + " de " + block.name);
         input.addEventListener("change", () => {
-          const current = [...block.name.matchAll(/-?\\d+(?:\\.\\d+)?/g)];
+          const current = [...block.name.matchAll(/-?\d+(?:\.\d+)?/g)];
           const target = current[parameterIndex];
           if (!target) return;
           const next = Number(input.value);
