@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b1020">
+  <meta name="description" content="Scratch Evolution: programación visual y creación de videojuegos 2D.">
+  <title>Scratch Evolution</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="Scratch Evolution inicio">
+        <span class="brand-mark"><span></span><span></span><span></span><span></span></span>
+        <span>Scratch <b>Evolution</b><small>CREATIVE DEVELOPMENT STUDIO</small></span>
+      </a>
+      <div class="project-name"><span class="status-dot"></span><input id="projectName" value="Mi primer proyecto" aria-label="Nombre del proyecto"></div>
+      <div class="top-actions">
+        <button class="icon-button" id="saveBtn" title="Guardar proyecto" aria-label="Guardar">⌑</button>
+        <button class="icon-button" id="exportBtn" title="Exportar proyecto JSON" aria-label="Exportar">⇩</button>
+        <button class="icon-button" id="importBtn" title="Importar proyecto" aria-label="Importar">⇧</button>
+        <button class="primary-button" id="runBtn"><span>▶</span> Ejecutar</button>
+        <input id="importFile" type="file" accept=".json,application/json" hidden>
+      </div>
+    </header>
+
+    <nav class="modebar" aria-label="Entornos de trabajo">
+      <div class="mode-tabs">
+        <button class="mode-tab active" data-mode="blocks"><span class="mode-icon blue">▦</span> Blocks Studio</button>
+        <button class="mode-tab" data-mode="game"><span class="mode-icon green">▣</span> Game Studio</button>
+      </div>
+      <div class="mode-meta"><span class="online-dot"></span> Proyecto local <span class="separator">/</span> <span id="modeLabel">Programación visual</span></div>
+    </nav>
+
+    <main class="workspace">
+      <aside class="left-panel">
+        <div class="panel-heading"><span id="leftPanelTitle">BLOQUES</span><button class="subtle-button" id="searchToggle" title="Buscar">⌕</button></div>
+        <div class="search-wrap" id="searchWrap"><input id="searchInput" placeholder="Buscar bloques..." aria-label="Buscar"></div>
+        <div class="category-list" id="categoryList">
+          <button class="category active" data-category="motion"><i class="cat-dot motion"></i> Movimiento</button>
+          <button class="category" data-category="looks"><i class="cat-dot looks"></i> Apariencia</button>
+          <button class="category" data-category="events"><i class="cat-dot events"></i> Eventos</button>
+          <button class="category" data-category="control"><i class="cat-dot control"></i> Control</button>
+          <button class="category" data-category="sensing"><i class="cat-dot sensing"></i> Sensores</button>
+          <button class="category" data-category="variables"><i class="cat-dot variables"></i> Variables</button>
+          <button class="category" data-category="game"><i class="cat-dot game"></i> Game Engine</button>
+        </div>
+        <div class="panel-divider"></div>
+        <div class="panel-heading"><span id="libraryTitle">BIBLIOTECA DE BLOQUES</span><span class="tiny-count" id="blockCount">8</span></div>
+        <div class="block-library" id="blockLibrary"></div>
+        <div class="panel-hint"><span class="hint-icon">✦</span><span>Selecciona un bloque para añadirlo al programa.</span></div>
+      </aside>
+
+      <section class="center-panel">
+        <div class="editor-toolbar">
+          <div class="breadcrumb"><span id="editorTitle">Editor de código</span><span class="crumb-sep">/</span><b id="selectedName">Player</b></div>
+          <div class="toolbar-actions">
+            <button class="tool-button active" id="selectTool" title="Seleccionar">↖</button>
+            <button class="tool-button" id="gridToggle" title="Mostrar u ocultar cuadrícula">▦</button>
+            <button class="tool-button" id="zoomOut" title="Alejar">−</button>
+            <span class="zoom-value" id="zoomValue">100%</span>
+            <button class="tool-button" id="zoomIn" title="Acercar">+</button>
+          </div>
+        </div>
+        <div class="editor-content" id="blocksWorkspace">
+          <div class="workspace-empty" id="emptyBlocks">
+            <div class="empty-symbol">⌘</div>
+            <h2>Tu espacio de programación</h2>
+            <p>Añade bloques desde la biblioteca para comenzar a construir tu programa.</p>
+            <button class="outline-button" id="addStarter">Crear programa de ejemplo</button>
+          </div>
+          <div class="script-stack" id="scriptStack" aria-live="polite"></div>
+        </div>
+        <div class="game-workspace hidden" id="gameWorkspace">
+          <div class="scene-toolbar">
+            <div class="scene-tabs"><button class="scene-tab active">Escena 1</button><button class="scene-add" id="addScene" title="Añadir escena">＋</button></div>
+            <span class="scene-size">1280 × 720</span>
+          </div>
+          <div class="stage-wrap">
+            <div class="stage" id="stage">
+              <canvas id="gameCanvas" width="1280" height="720" aria-label="Vista previa del juego"></canvas>
+              <div class="stage-overlay" id="stageOverlay"><span>VISTA PREVIA</span></div>
+            </div>
+          </div>
+          <div class="stage-footer"><span><i class="live-dot"></i><span id="engineStatus">Motor detenido</span></span><span id="objectCoordinates">X: 0 · Y: 0</span></div>
+        </div>
+        <div class="bottom-console">
+          <div class="console-tabs"><button class="console-tab active" data-console="output">Consola</button><button class="console-tab" data-console="diagnostics">Diagnóstico</button></div>
+          <div class="console-content" id="consoleContent"><span class="console-muted">Scratch Evolution listo. Crea algo increíble.</span></div>
+        </div>
+      </section>
+
+      <aside class="right-panel">
+        <div class="right-tabs"><button class="right-tab active" data-right="properties">Propiedades</button><button class="right-tab" data-right="objects">Objetos</button></div>
+        <div id="propertiesPanel" class="right-content">
+          <div class="inspector-title"><span class="object-avatar" id="objectAvatar">◆</span><div><b id="inspectorName">Player</b><small id="inspectorType">Sprite · Entidad</small></div><button class="more-button" id="deleteObject" title="Eliminar objeto">⋯</button></div>
+          <div class="inspector-section">
+            <div class="section-title">TRANSFORMACIÓN <span>⌄</span></div>
+            <div class="property-grid">
+              <label>Posición X<input type="number" id="posX" value="160"></label>
+              <label>Posición Y<input type="number" id="posY" value="470"></label>
+              <label>Escala<input type="number" id="scaleInput" value="1" min="0.1" max="10" step="0.1"></label>
+              <label>Rotación<input type="number" id="rotationInput" value="0"></label>
+            </div>
+          </div>
+          <div class="inspector-section">
+            <div class="section-title">APARIENCIA <span>⌄</span></div>
+            <label class="full-label">Color del objeto <input type="color" id="colorInput" value="#6c8cff"></label>
+            <label class="toggle-row">Visible <input type="checkbox" id="visibleInput" checked><span class="toggle"></span></label>
+          </div>
+          <div class="inspector-section">
+            <div class="section-title">FÍSICA 2D <span class="planned-tag">BÁSICO</span></div>
+            <label class="toggle-row">Aplicar gravedad <input type="checkbox" id="gravityInput"><span class="toggle"></span></label>
+            <label class="toggle-row">Colisión activa <input type="checkbox" id="collisionInput" checked><span class="toggle"></span></label>
+          </div>
+        </div>
+        <div id="objectsPanel" class="right-content hidden">
+          <div class="objects-heading"><span>JERARQUÍA DE ESCENA</span><button class="subtle-button" id="addObject">＋</button></div>
+          <div class="object-list" id="objectList"></div>
+          <button class="add-object-button" id="addObjectBottom">＋ Añadir objeto</button>
+        </div>
+        <div class="inspector-footer"><span class="footer-check">✓</span> Todos los cambios se guardan localmente al guardar.</div>
+      </aside>
+    </main>
+    <footer class="statusbar"><span>SCRATCH EVOLUTION <b>PRE-ALPHA</b></span><span id="saveStatus">Sin cambios guardados</span><span>WEB EDITION · v0.1.0</span></footer>
+  </div>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
