@@ -13,6 +13,10 @@ Incluye:
 - Interfaz adaptable en español.
 - Cambio entre Blocks Studio y Game Studio.
 - Biblioteca de bloques y pila visual de scripts.
+- Parámetros numéricos editables directamente en los bloques.
+- Reordenación de scripts mediante arrastrar y soltar o controles de flecha.
+- Movimiento de objetos en Game Studio arrastrándolos directamente sobre el escenario.
+- Bloques adicionales para cambiar/fijar X e Y, orientación y tamaño.
 - Primer intérprete de bloques: movimiento, dirección, tamaño, mostrar/ocultar, variables `puntos`, esperas y bucles básicos.
 - Ejecución y pausa del programa desde el botón principal.
 - Escena Canvas 2D con selección de entidades.
@@ -52,4 +56,4 @@ https://docs.turbowarp.org/development
 
 ### Limitaciones del intérprete inicial
 
-El intérprete actual es experimental: los bloques de repetición y por siempre toman como cuerpo los bloques que aparecen después de ellos en la pila; todavía no hay bloques anidados ni editor de parámetros. No sustituye a la VM de Scratch/TurboWarp.
+El intérprete actual es experimental: los bloques de repetición y por siempre toman como cuerpo los bloques que aparecen después de ellos en la pila; todavía no hay bloques anidados ni conexiones visuales entre bloques. No sustituye a la VM de Scratch/TurboWarp.
