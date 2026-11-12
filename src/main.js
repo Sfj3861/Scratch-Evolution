@@ -263,13 +263,111 @@ function runTool(tool) {
   if (tool === "grid") { state.showGrid = !state.showGrid; drawScene(); }
   if (tool === "select") log("Herramienta de selección activa.");
 }
+
+const runtime = { variables: { puntos: 0 }, runId: 0, active: false };
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+function runtimeLog(message) { log("[Programa] " + message, "success"); }
+function currentPlayer() { return state.objects.find(o => o.id === state.selectedId) || state.objects.find(o => o.type === "Sprite"); }
+function executeSimpleBlock(block) {
+  const obj = currentPlayer();
+  if (!obj) return;
+  const name = block.name.toLowerCase();
+  if (name.includes("mover")) {
+    const amount = Number(name.match(/-?\\d+/)?.[0] || 10);
+    obj.x += amount;
+  } else if (name.includes("ir a x")) {
+    const nums = name.match(/-?\\d+(?:\\.\\d+)?/g) || [];
+    obj.x = Number(nums[0] ?? 0); obj.y = Number(nums[1] ?? 0);
+  } else if (name.includes("cambiar dirección")) {
+    obj.rotation += Number(name.match(/-?\\d+/)?.[0] || 15);
+  } else if (name.includes("cambiar tamaño")) {
+    obj.scale = Math.max(.1, obj.scale + (Number(name.match(/-?\\d+/)?.[0] || 10) / 100));
+  } else if (name === "mostrar") obj.visible = true;
+  else if (name === "ocultar") obj.visible = false;
+  else if (name.includes("cambiar efecto de color")) {
+    obj.color = ["#6c8cff", "#e6a65c", "#c084fc", "#4dd6a0"][Math.floor(Math.random()*4)];
+  } else if (name.includes("fijar puntos")) {
+    runtime.variables.puntos = Number(name.match(/-?\\d+/)?.[0] || 0);
+  } else if (name.includes("cambiar puntos")) {
+    runtime.variables.puntos += Number(name.match(/-?\\d+/)?.[0] || 1);
+  } else if (name.includes("aplicar gravedad")) {
+    obj.gravity = true;
+  } else if (name.includes("mover con velocidad")) {
+    obj.x += 5;
+  }
+  drawScene();
+}
+async function executeBlocks(runId) {
+  let pc = 0, operations = 0;
+  const blocks = state.blocks;
+  while (state.running && runId === runtime.runId && pc < blocks.length && operations < 10000) {
+    const block = blocks[pc++];
+    const name = block.name.toLowerCase();
+    operations++;
+    if (name.includes("al pulsar bandera")) {
+      // Bloque de evento: inicia la secuencia y no realiza una acción por sí mismo.
+    } else if (name.includes("por siempre")) {
+      const body = blocks.slice(pc);
+      while (state.running && runId === runtime.runId) {
+        for (const child of body) {
+          if (!state.running || runId !== runtime.runId) break;
+          if (child.name.toLowerCase().includes("esperar")) {
+            await sleep(1000);
+          } else executeSimpleBlock(child);
+          await sleep(16);
+        }
+        if (!body.length) break;
+      }
+      break;
+    } else if (name.includes("repetir")) {
+      const count = Math.max(0, Math.min(1000, Number(name.match(/\\d+/)?.[0] || 10)));
+      const body = blocks.slice(pc);
+      for (let i = 0; i < count && state.running && runId === runtime.runId; i++) {
+        for (const child of body) {
+          if (!state.running || runId !== runtime.runId) break;
+          if (child.name.toLowerCase().includes("esperar")) await sleep(1000);
+          else executeSimpleBlock(child);
+          await sleep(16);
+        }
+      }
+      break;
+    } else if (name.includes("esperar")) {
+      await sleep(Math.max(0, Math.min(30000, Number(name.match(/\\d+(?:\\.\\d+)?/)?.[0] || 1) * 1000)));
+    } else {
+      executeSimpleBlock(block);
+      await sleep(16);
+    }
+  }
+  if (operations >= 10000) runtimeLog("Se detuvo la secuencia por alcanzar el límite de seguridad.");
+  if (runId === runtime.runId) runtime.active = false;
+}
 function runGame() {
   state.running = !state.running;
   $("#runBtn").innerHTML = state.running ? "<span>Ⅱ</span> Pausar" : "<span>▶</span> Ejecutar";
   $("#engineStatus").textContent = state.running ? "Motor en ejecución" : "Motor detenido";
   $("#stageOverlay").classList.toggle("hidden", state.running);
-  log(state.running ? "Vista previa iniciada." : "Vista previa pausada.", "success");
-  if (state.running) { state.lastFrame = 0; requestAnimationFrame(gameLoop); }
+  if (state.running) {
+    log(state.mode === "blocks" ? "Programa iniciado." : "Vista previa iniciada.", "success");
+    state.lastFrame = 0;
+    requestAnimationFrame(gameLoop);
+    if (state.mode === "blocks" && state.blocks.length) {
+      runtime.runId++;
+      runtime.active = true;
+      executeBlocks(runtime.runId).then(() => {
+        if (!runtime.active && state.running) {
+          state.running = false;
+          $("#runBtn").innerHTML = "<span>▶</span> Ejecutar";
+          $("#engineStatus").textContent = "Programa finalizado";
+          $("#stageOverlay").classList.remove("hidden");
+        }
+      });
+    }
+  } else {
+    runtime.runId++;
+    runtime.active = false;
+    $("#stageOverlay").classList.remove("hidden");
+    log("Ejecución pausada.", "warn");
+  }
 }
 function gameLoop(timestamp) {
   if (!state.running) return;
