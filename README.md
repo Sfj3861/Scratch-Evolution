@@ -7,13 +7,14 @@ Entorno de creación con dos espacios integrados:
 
 ## Estado actual
 
-**Pre-alpha 0.1.0.** Esta primera entrega es una base web interactiva; todavía no es una implementación completa de TurboWarp ni un motor de videojuegos terminado.
+**Pre-alpha 0.2.0.** Esta primera entrega es una base web interactiva; todavía no es una implementación completa de TurboWarp ni un motor de videojuegos terminado.
 
 Incluye:
 - Interfaz adaptable en español.
 - Cambio entre Blocks Studio y Game Studio.
 - Biblioteca de bloques y pila visual de scripts.
 - Parámetros numéricos editables directamente en los bloques.
+- Incorporación de bloques desde la biblioteca mediante clic o arrastrar y soltar.
 - Reordenación de scripts mediante arrastrar y soltar o controles de flecha.
 - Movimiento de objetos en Game Studio arrastrándolos directamente sobre el escenario.
 - Bloques adicionales para cambiar/fijar X e Y, orientación y tamaño.
@@ -40,7 +41,7 @@ No requiere instalar dependencias. Abre `index.html` mediante un servidor estát
 
 1. Integrar los componentes de TurboWarp respetando sus licencias y avisos.
 2. Implementar un modelo de proyecto compartido y versionado.
-3. Ampliar el intérprete con bloques anidados, condiciones, eventos de teclado y parámetros editables.
+3. Ampliar el intérprete con bloques anidados, condiciones y eventos de teclado.
 4. Incorporar física 2D, colisiones y un editor de niveles.
 5. Integrar TurboWarp VM, añadir pruebas automatizadas y exportación HTML5.
 
