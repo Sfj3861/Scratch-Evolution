@@ -365,6 +365,8 @@ function executeSimpleBlock(block) {
     obj.x = Number(numbers[0] ?? 0); obj.y = Number(numbers[1] ?? 0);
   } else if (name.includes("apuntar en dirección")) {
     obj.rotation = value;
+  } else if (name.includes("mover con velocidad")) {
+    obj.x += 5;
   } else if (name.includes("mover")) {
     obj.x += value || 10;
   } else if (name.includes("cambiar dirección")) {
@@ -383,8 +385,6 @@ function executeSimpleBlock(block) {
     runtime.variables.puntos += value || 1;
   } else if (name.includes("aplicar gravedad")) {
     obj.gravity = true;
-  } else if (name.includes("mover con velocidad")) {
-    obj.x += 5;
   }
   drawScene();
 }
