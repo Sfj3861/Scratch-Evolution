@@ -12,7 +12,9 @@ Entorno de creación con dos espacios integrados:
 Incluye:
 - Interfaz adaptable en español.
 - Cambio entre Blocks Studio y Game Studio.
-- Biblioteca de bloques de muestra y pila visual de scripts.
+- Biblioteca de bloques y pila visual de scripts.
+- Primer intérprete de bloques: movimiento, dirección, tamaño, mostrar/ocultar, variables `puntos`, esperas y bucles básicos.
+- Ejecución y pausa del programa desde el botón principal.
 - Escena Canvas 2D con selección de entidades.
 - Creación de sprites y plataformas.
 - Inspector de transformaciones y propiedades básicas.
@@ -34,9 +36,9 @@ No requiere instalar dependencias. Abre `index.html` mediante un servidor estát
 
 1. Integrar los componentes de TurboWarp respetando sus licencias y avisos.
 2. Implementar un modelo de proyecto compartido y versionado.
-3. Conectar el editor de bloques a un runtime real.
+3. Ampliar el intérprete con bloques anidados, condiciones, eventos de teclado y parámetros editables.
 4. Incorporar física 2D, colisiones y un editor de niveles.
-5. Añadir pruebas automatizadas y exportación HTML5.
+5. Integrar TurboWarp VM, añadir pruebas automatizadas y exportación HTML5.
 
 ## Licencias
 
@@ -46,3 +48,8 @@ El código original de este repositorio está bajo MIT, según `LICENSE`. Cualqu
 
 La documentación de TurboWarp describe su arquitectura modular y el proceso de desarrollo de GUI y VM:
 https://docs.turbowarp.org/development
+
+
+### Limitaciones del intérprete inicial
+
+El intérprete actual es experimental: los bloques de repetición y por siempre toman como cuerpo los bloques que aparecen después de ellos en la pila; todavía no hay bloques anidados ni editor de parámetros. No sustituye a la VM de Scratch/TurboWarp.
