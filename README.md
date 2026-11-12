@@ -21,7 +21,14 @@ Incluye:
 
 ## Ejecutar
 
-No requiere instalar dependencias. Abre `index.html` mediante un servidor estático local o publica el repositorio con GitHub Pages.
+No requiere instalar dependencias. Abre `index.html` mediante un servidor estático local.
+
+### Publicar en GitHub Pages
+
+1. En el repositorio, abre **Settings → Pages**.
+2. En **Build and deployment**, selecciona **GitHub Actions** como fuente.
+3. El workflow `.github/workflows/deploy.yml` publicará automáticamente el sitio al hacer push a `main`.
+4. La URL publicada aparecerá en **Settings → Pages** y en la ejecución del workflow.
 
 ## Próximos hitos
 
