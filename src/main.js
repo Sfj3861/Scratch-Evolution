@@ -6,10 +6,16 @@ const blockDefinitions = {
     ["Mover 10 pasos", "Cambia la posición del objeto", "motion"],
     ["Ir a X: 0 Y: 0", "Establece una posición", "motion"],
     ["Cambiar dirección 15°", "Rota el objeto", "motion"],
-    ["Deslizar en 1 segundo", "Movimiento interpolado", "motion"]
+    ["Deslizar en 1 segundo", "Movimiento interpolado", "motion"],
+    ["Cambiar X por 10", "Desplaza el objeto horizontalmente", "motion"],
+    ["Cambiar Y por 10", "Desplaza el objeto verticalmente", "motion"],
+    ["Fijar X a 0", "Establece la coordenada horizontal", "motion"],
+    ["Fijar Y a 0", "Establece la coordenada vertical", "motion"],
+    ["Apuntar en dirección 90°", "Establece la orientación del objeto", "motion"]
   ],
   looks: [
     ["Cambiar tamaño 10%", "Modifica la escala", "looks"],
+    ["Fijar tamaño a 100%", "Establece el tamaño en porcentaje", "looks"],
     ["Mostrar", "Hace visible el objeto", "looks"],
     ["Ocultar", "Oculta el objeto", "looks"],
     ["Cambiar efecto de color", "Aplica un efecto visual", "looks"]
@@ -345,24 +351,36 @@ function executeSimpleBlock(block) {
   const obj = currentPlayer();
   if (!obj) return;
   const name = block.name.toLowerCase();
-  if (name.includes("mover")) {
-    const amount = Number(name.match(/-?\d+/)?.[0] || 10);
-    obj.x += amount;
+  const numbers = name.match(/-?\d+(?:\.\d+)?/g) || [];
+  const value = Number(numbers[0] ?? 0);
+  if (name.includes("cambiar x")) {
+    obj.x += value;
+  } else if (name.includes("cambiar y")) {
+    obj.y += value;
+  } else if (name.includes("fijar x")) {
+    obj.x = value;
+  } else if (name.includes("fijar y")) {
+    obj.y = value;
   } else if (name.includes("ir a x")) {
-    const nums = name.match(/-?\d+(?:\.\d+)?/g) || [];
-    obj.x = Number(nums[0] ?? 0); obj.y = Number(nums[1] ?? 0);
+    obj.x = Number(numbers[0] ?? 0); obj.y = Number(numbers[1] ?? 0);
+  } else if (name.includes("apuntar en dirección")) {
+    obj.rotation = value;
+  } else if (name.includes("mover")) {
+    obj.x += value || 10;
   } else if (name.includes("cambiar dirección")) {
-    obj.rotation += Number(name.match(/-?\d+/)?.[0] || 15);
+    obj.rotation += value || 15;
+  } else if (name.includes("fijar tamaño")) {
+    obj.scale = Math.max(.1, value / 100);
   } else if (name.includes("cambiar tamaño")) {
-    obj.scale = Math.max(.1, obj.scale + (Number(name.match(/-?\d+/)?.[0] || 10) / 100));
+    obj.scale = Math.max(.1, obj.scale + ((value || 10) / 100));
   } else if (name === "mostrar") obj.visible = true;
   else if (name === "ocultar") obj.visible = false;
   else if (name.includes("cambiar efecto de color")) {
     obj.color = ["#6c8cff", "#e6a65c", "#c084fc", "#4dd6a0"][Math.floor(Math.random()*4)];
   } else if (name.includes("fijar puntos")) {
-    runtime.variables.puntos = Number(name.match(/-?\d+/)?.[0] || 0);
+    runtime.variables.puntos = value;
   } else if (name.includes("cambiar puntos")) {
-    runtime.variables.puntos += Number(name.match(/-?\d+/)?.[0] || 1);
+    runtime.variables.puntos += value || 1;
   } else if (name.includes("aplicar gravedad")) {
     obj.gravity = true;
   } else if (name.includes("mover con velocidad")) {
