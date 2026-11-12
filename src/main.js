@@ -273,23 +273,23 @@ function executeSimpleBlock(block) {
   if (!obj) return;
   const name = block.name.toLowerCase();
   if (name.includes("mover")) {
-    const amount = Number(name.match(/-?\\d+/)?.[0] || 10);
+    const amount = Number(name.match(/-?\d+/)?.[0] || 10);
     obj.x += amount;
   } else if (name.includes("ir a x")) {
-    const nums = name.match(/-?\\d+(?:\\.\\d+)?/g) || [];
+    const nums = name.match(/-?\d+(?:\.\d+)?/g) || [];
     obj.x = Number(nums[0] ?? 0); obj.y = Number(nums[1] ?? 0);
   } else if (name.includes("cambiar dirección")) {
-    obj.rotation += Number(name.match(/-?\\d+/)?.[0] || 15);
+    obj.rotation += Number(name.match(/-?\d+/)?.[0] || 15);
   } else if (name.includes("cambiar tamaño")) {
-    obj.scale = Math.max(.1, obj.scale + (Number(name.match(/-?\\d+/)?.[0] || 10) / 100));
+    obj.scale = Math.max(.1, obj.scale + (Number(name.match(/-?\d+/)?.[0] || 10) / 100));
   } else if (name === "mostrar") obj.visible = true;
   else if (name === "ocultar") obj.visible = false;
   else if (name.includes("cambiar efecto de color")) {
     obj.color = ["#6c8cff", "#e6a65c", "#c084fc", "#4dd6a0"][Math.floor(Math.random()*4)];
   } else if (name.includes("fijar puntos")) {
-    runtime.variables.puntos = Number(name.match(/-?\\d+/)?.[0] || 0);
+    runtime.variables.puntos = Number(name.match(/-?\d+/)?.[0] || 0);
   } else if (name.includes("cambiar puntos")) {
-    runtime.variables.puntos += Number(name.match(/-?\\d+/)?.[0] || 1);
+    runtime.variables.puntos += Number(name.match(/-?\d+/)?.[0] || 1);
   } else if (name.includes("aplicar gravedad")) {
     obj.gravity = true;
   } else if (name.includes("mover con velocidad")) {
@@ -320,7 +320,7 @@ async function executeBlocks(runId) {
       }
       break;
     } else if (name.includes("repetir")) {
-      const count = Math.max(0, Math.min(1000, Number(name.match(/\\d+/)?.[0] || 10)));
+      const count = Math.max(0, Math.min(1000, Number(name.match(/\d+/)?.[0] || 10)));
       const body = blocks.slice(pc);
       for (let i = 0; i < count && state.running && runId === runtime.runId; i++) {
         for (const child of body) {
@@ -332,7 +332,7 @@ async function executeBlocks(runId) {
       }
       break;
     } else if (name.includes("esperar")) {
-      await sleep(Math.max(0, Math.min(30000, Number(name.match(/\\d+(?:\\.\\d+)?/)?.[0] || 1) * 1000)));
+      await sleep(Math.max(0, Math.min(30000, Number(name.match(/\d+(?:\.\d+)?/)?.[0] || 1) * 1000)));
     } else {
       executeSimpleBlock(block);
       await sleep(16);
