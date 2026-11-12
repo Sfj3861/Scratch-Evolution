@@ -99,27 +99,100 @@ function addBlock(name, description, category) {
 function renderScript() {
   const stack = $("#scriptStack");
   stack.innerHTML = "";
-  state.blocks.forEach(block => {
+  state.blocks.forEach((block, index) => {
     const el = document.createElement("div");
     el.className = "script-block " + block.category;
-    const remove = document.createElement("button");
-    remove.className = "script-remove";
-    remove.textContent = "×";
-    remove.title = "Eliminar bloque";
-    remove.addEventListener("click", () => {
-      state.blocks = state.blocks.filter(b => b.id !== block.id);
+    el.draggable = true;
+    el.dataset.blockId = block.id;
+    el.addEventListener("dragstart", event => {
+      state.draggingBlockId = block.id;
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", block.id);
+      el.classList.add("dragging");
+    });
+    el.addEventListener("dragend", () => {
+      state.draggingBlockId = null;
+      $$(".script-block").forEach(node => node.classList.remove("dragging", "drop-target"));
+    });
+    el.addEventListener("dragover", event => {
+      event.preventDefault();
+      if (state.draggingBlockId && state.draggingBlockId !== block.id) el.classList.add("drop-target");
+    });
+    el.addEventListener("dragleave", () => el.classList.remove("drop-target"));
+    el.addEventListener("drop", event => {
+      event.preventDefault();
+      el.classList.remove("drop-target");
+      const fromId = state.draggingBlockId || event.dataTransfer.getData("text/plain");
+      const from = state.blocks.findIndex(item => item.id === fromId);
+      const to = state.blocks.findIndex(item => item.id === block.id);
+      if (from < 0 || to < 0 || from === to) return;
+      const [moved] = state.blocks.splice(from, 1);
+      state.blocks.splice(to, 0, moved);
       renderScript();
-      $("#emptyBlocks").classList.toggle("hidden", state.blocks.length > 0);
       updateSaveStatus("Cambios sin guardar");
     });
+
+    const controls = document.createElement("div");
+    controls.className = "script-controls";
+    const up = document.createElement("button");
+    up.type = "button"; up.textContent = "↑"; up.title = "Mover bloque arriba";
+    up.disabled = index === 0;
+    up.addEventListener("click", () => moveBlock(index, -1));
+    const down = document.createElement("button");
+    down.type = "button"; down.textContent = "↓"; down.title = "Mover bloque abajo";
+    down.disabled = index === state.blocks.length - 1;
+    down.addEventListener("click", () => moveBlock(index, 1));
+    const remove = document.createElement("button");
+    remove.type = "button"; remove.className = "script-remove";
+    remove.textContent = "×"; remove.title = "Eliminar bloque";
+    remove.addEventListener("click", () => {
+      state.blocks = state.blocks.filter(item => item.id !== block.id);
+      renderScript();
+      updateSaveStatus("Cambios sin guardar");
+    });
+    controls.append(up, down, remove);
+
     const label = document.createElement("span");
+    label.className = "script-label";
     label.textContent = block.name;
+    el.append(controls, label);
+
+    const values = [...block.name.matchAll(/-?\\d+(?:\\.\\d+)?/g)];
+    if (values.length) {
+      const params = document.createElement("div");
+      params.className = "script-parameters";
+      values.forEach((match, parameterIndex) => {
+        const input = document.createElement("input");
+        input.type = "number"; input.step = "any";
+        input.value = match[0];
+        input.setAttribute("aria-label", "Parámetro " + (parameterIndex + 1) + " de " + block.name);
+        input.addEventListener("change", () => {
+          const current = [...block.name.matchAll(/-?\\d+(?:\\.\\d+)?/g)];
+          const target = current[parameterIndex];
+          if (!target) return;
+          const next = Number(input.value);
+          if (!Number.isFinite(next)) return;
+          block.name = block.name.slice(0, target.index) + String(next) + block.name.slice(target.index + target[0].length);
+          renderScript();
+          updateSaveStatus("Cambios sin guardar");
+        });
+        params.append(input);
+      });
+      el.append(params);
+    }
     const detail = document.createElement("small");
-    detail.textContent = block.description;
-    el.append(remove, label, detail);
+    detail.textContent = block.description + " · Arrastra para reordenar";
+    el.append(detail);
     stack.append(el);
   });
   $("#emptyBlocks").classList.toggle("hidden", state.blocks.length > 0);
+}
+function moveBlock(index, offset) {
+  const target = index + offset;
+  if (target < 0 || target >= state.blocks.length) return;
+  [state.blocks[index], state.blocks[target]] = [state.blocks[target], state.blocks[index]];
+  renderScript();
+  updateSaveStatus("Cambios sin guardar");
 }
 function renderObjects() {
   const list = $("#objectList");
@@ -460,14 +533,35 @@ $$(".right-tab").forEach(btn => btn.addEventListener("click", () => {
 [["posX","x",Number],["posY","y",Number],["scaleInput","scale",Number],["rotationInput","rotation",Number],["colorInput","color",String],["visibleInput","visible",Boolean],["gravityInput","gravity",Boolean],["collisionInput","collision",Boolean]].forEach(([id,key,convert]) => {
   $("#"+id).addEventListener("input", e => updateInspector(key, convert(e.target.type === "checkbox" ? e.target.checked : e.target.value)));
 });
+let sceneDrag = null;
 $("#gameCanvas").addEventListener("pointerdown", e => {
   if (state.mode !== "game" || state.running) return;
   const rect = canvas.getBoundingClientRect();
   const x = (e.clientX - rect.left) / rect.width * canvas.width;
   const y = (e.clientY - rect.top) / rect.height * canvas.height;
-  const hit = [...state.objects].reverse().find(o => Math.abs(o.x-x) < (o.type === "Platform" ? (o.width||240)/2 : 28) && Math.abs(o.y-y) < (o.type === "Platform" ? (o.height||28)/2 : 28));
-  if (hit) selectObject(hit.id);
+  const hit = [...state.objects].reverse().find(o => o.visible && Math.abs(o.x-x) < (o.type === "Platform" ? (o.width||240)/2 : 28) && Math.abs(o.y-y) < (o.type === "Platform" ? (o.height||28)/2 : 28));
+  if (hit) {
+    selectObject(hit.id);
+    sceneDrag = {id: hit.id, dx: hit.x - x, dy: hit.y - y};
+    canvas.setPointerCapture(e.pointerId);
+  }
 });
+$("#gameCanvas").addEventListener("pointermove", e => {
+  if (!sceneDrag || state.running) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) / rect.width * canvas.width;
+  const y = (e.clientY - rect.top) / rect.height * canvas.height;
+  const obj = state.objects.find(item => item.id === sceneDrag.id);
+  if (!obj) return;
+  obj.x = Math.round(x + sceneDrag.dx);
+  obj.y = Math.round(y + sceneDrag.dy);
+  $("#posX").value = obj.x; $("#posY").value = obj.y;
+  $("#objectCoordinates").textContent = "X: " + obj.x + " · Y: " + obj.y;
+  drawScene();
+});
+const stopSceneDrag = () => { if (sceneDrag) updateSaveStatus("Cambios sin guardar"); sceneDrag = null; };
+$("#gameCanvas").addEventListener("pointerup", stopSceneDrag);
+$("#gameCanvas").addEventListener("pointercancel", stopSceneDrag);
 window.addEventListener("keydown", e => { if (["ArrowLeft","ArrowRight","ArrowUp"," "].includes(e.key)) e.preventDefault(); state.keys.add(e.key); });
 window.addEventListener("keyup", e => state.keys.delete(e.key));
 window.addEventListener("beforeunload", () => { if (state.blocks.length || state.objects.length) localStorage.setItem("scratch-evolution-autosave", JSON.stringify(projectData())); });
