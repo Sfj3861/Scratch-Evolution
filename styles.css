@@ -30,3 +30,8 @@
 .nested-hint{display:block;color:#ffffffa0;font-size:9px!important;font-weight:400!important;margin:0 0 3px!important;letter-spacing:.2px}
 .script-block.nested-block .script-controls{top:5px;right:5px}
 .script-block.nested-block .script-controls button{min-width:20px;height:20px}
+
+
+/* Conditional blocks and nested list controls */
+.condition-select{display:block;max-width:100%;margin:8px 0 2px;background:#14213a;border:1px solid #ffffff45;border-radius:5px;color:#fff;padding:6px 8px;font-size:10px}
+.script-block.nested-block .script-controls{right:5px;top:5px}
