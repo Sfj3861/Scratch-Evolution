@@ -100,8 +100,39 @@ function renderBlockLibrary(filter = "") {
     $("#blockLibrary").append(button);
   });
 }
-function addBlock(name, description, category) {
-  state.blocks.push({id: crypto.randomUUID(), name, description, category});
+function isContainerBlock(block) {
+  const name = block.name.toLowerCase();
+  return name.includes("repetir") || name.includes("por siempre") || name.includes("si ... entonces");
+}
+function normalizeBlockTree(input) {
+  const blocks = Array.isArray(input) ? input.map(block => ({
+    ...block,
+    id: block.id || crypto.randomUUID(),
+    children: Array.isArray(block.children) ? normalizeBlockTree(block.children) : undefined
+  })) : [];
+  // Compatibilidad: los proyectos antiguos guardaban el cuerpo de los bucles en la pila plana.
+  if (blocks.some(block => Array.isArray(block.children))) return blocks.map(block => {
+    if (isContainerBlock(block) && !Array.isArray(block.children)) block.children = [];
+    return block;
+  });
+  const firstLoop = blocks.findIndex(block => /repetir|por siempre/i.test(block.name || ""));
+  if (firstLoop >= 0) {
+    const loop = blocks[firstLoop];
+    loop.children = blocks.slice(firstLoop + 1);
+    return blocks.slice(0, firstLoop + 1).map(block => {
+      if (isContainerBlock(block) && !Array.isArray(block.children)) block.children = [];
+      return block;
+    });
+  }
+  return blocks.map(block => {
+    if (isContainerBlock(block)) block.children = [];
+    return block;
+  });
+}
+function addBlock(name, description, category, targetList = state.blocks) {
+  const block = {id: crypto.randomUUID(), name, description, category};
+  if (isContainerBlock(block)) block.children = [];
+  targetList.push(block);
   renderScript();
   $("#emptyBlocks").classList.add("hidden");
   log("Bloque añadido: " + name, "success");
@@ -110,92 +141,133 @@ function addBlock(name, description, category) {
 function renderScript() {
   const stack = $("#scriptStack");
   stack.innerHTML = "";
-  state.blocks.forEach((block, index) => {
-    const el = document.createElement("div");
-    el.className = "script-block " + block.category;
-    el.draggable = true;
-    el.dataset.blockId = block.id;
-    el.addEventListener("dragstart", event => {
-      state.draggingBlockId = block.id;
-      event.dataTransfer.effectAllowed = "move";
-      event.dataTransfer.setData("text/plain", block.id);
-      el.classList.add("dragging");
-    });
-    el.addEventListener("dragend", () => {
-      state.draggingBlockId = null;
-      $$(".script-block").forEach(node => node.classList.remove("dragging", "drop-target"));
-    });
-    el.addEventListener("dragover", event => {
-      event.preventDefault();
-      if (state.draggingBlockId && state.draggingBlockId !== block.id) el.classList.add("drop-target");
-    });
-    el.addEventListener("dragleave", () => el.classList.remove("drop-target"));
-    el.addEventListener("drop", event => {
-      event.preventDefault();
-      el.classList.remove("drop-target");
-      const fromId = state.draggingBlockId || event.dataTransfer.getData("text/plain");
-      const from = state.blocks.findIndex(item => item.id === fromId);
-      const to = state.blocks.findIndex(item => item.id === block.id);
-      if (from < 0 || to < 0 || from === to) return;
-      const [moved] = state.blocks.splice(from, 1);
-      state.blocks.splice(to, 0, moved);
-      renderScript();
-      updateSaveStatus("Cambios sin guardar");
-    });
-
-    const controls = document.createElement("div");
-    controls.className = "script-controls";
-    const up = document.createElement("button");
-    up.type = "button"; up.textContent = "↑"; up.title = "Mover bloque arriba";
-    up.disabled = index === 0;
-    up.addEventListener("click", () => moveBlock(index, -1));
-    const down = document.createElement("button");
-    down.type = "button"; down.textContent = "↓"; down.title = "Mover bloque abajo";
-    down.disabled = index === state.blocks.length - 1;
-    down.addEventListener("click", () => moveBlock(index, 1));
-    const remove = document.createElement("button");
-    remove.type = "button"; remove.className = "script-remove";
-    remove.textContent = "×"; remove.title = "Eliminar bloque";
-    remove.addEventListener("click", () => {
-      state.blocks = state.blocks.filter(item => item.id !== block.id);
-      renderScript();
-      updateSaveStatus("Cambios sin guardar");
-    });
-    controls.append(up, down, remove);
-
-    const label = document.createElement("span");
-    label.className = "script-label";
-    label.textContent = block.name;
-    el.append(controls, label);
-
-    const values = [...block.name.matchAll(/-?\d+(?:\.\d+)?/g)];
-    if (values.length) {
-      const params = document.createElement("div");
-      params.className = "script-parameters";
-      values.forEach((match, parameterIndex) => {
-        const input = document.createElement("input");
-        input.type = "number"; input.step = "any";
-        input.value = match[0];
-        input.setAttribute("aria-label", "Parámetro " + (parameterIndex + 1) + " de " + block.name);
-        input.addEventListener("change", () => {
-          const current = [...block.name.matchAll(/-?\d+(?:\.\d+)?/g)];
-          const target = current[parameterIndex];
-          if (!target) return;
-          const next = Number(input.value);
-          if (!Number.isFinite(next)) return;
-          block.name = block.name.slice(0, target.index) + String(next) + block.name.slice(target.index + target[0].length);
+  const renderList = (list, parent, nested = false) => {
+    list.forEach((block, index) => {
+      const el = document.createElement("div");
+      el.className = "script-block " + block.category + (nested ? " nested-block" : "");
+      el.draggable = !nested;
+      el.dataset.blockId = block.id;
+      if (!nested) {
+        el.addEventListener("dragstart", event => {
+          state.draggingBlockId = block.id;
+          event.dataTransfer.effectAllowed = "move";
+          event.dataTransfer.setData("text/plain", block.id);
+          el.classList.add("dragging");
+        });
+        el.addEventListener("dragend", () => {
+          state.draggingBlockId = null;
+          $(".script-block").forEach(node => node.classList.remove("dragging", "drop-target"));
+        });
+        el.addEventListener("dragover", event => {
+          if (!event.dataTransfer.types.includes("application/x-scratch-evolution-block")) {
+            event.preventDefault();
+            if (state.draggingBlockId && state.draggingBlockId !== block.id) el.classList.add("drop-target");
+          }
+        });
+        el.addEventListener("dragleave", () => el.classList.remove("drop-target"));
+        el.addEventListener("drop", event => {
+          if (event.dataTransfer.getData("application/x-scratch-evolution-block")) return;
+          event.preventDefault();
+          el.classList.remove("drop-target");
+          const fromId = state.draggingBlockId || event.dataTransfer.getData("text/plain");
+          const from = state.blocks.findIndex(item => item.id === fromId);
+          const to = state.blocks.findIndex(item => item.id === block.id);
+          if (from < 0 || to < 0 || from === to) return;
+          const [moved] = state.blocks.splice(from, 1);
+          state.blocks.splice(to, 0, moved);
           renderScript();
           updateSaveStatus("Cambios sin guardar");
         });
-        params.append(input);
+      }
+
+      const controls = document.createElement("div");
+      controls.className = "script-controls";
+      if (!nested) {
+        const up = document.createElement("button");
+        up.type = "button"; up.textContent = "↑"; up.title = "Mover bloque arriba";
+        up.disabled = index === 0;
+        up.addEventListener("click", () => moveBlock(index, -1));
+        const down = document.createElement("button");
+        down.type = "button"; down.textContent = "↓"; down.title = "Mover bloque abajo";
+        down.disabled = index === list.length - 1;
+        down.addEventListener("click", () => moveBlock(index, 1));
+        controls.append(up, down);
+      }
+      const remove = document.createElement("button");
+      remove.type = "button"; remove.className = "script-remove";
+      remove.textContent = "×"; remove.title = "Eliminar bloque";
+      remove.addEventListener("click", () => {
+        const removeFrom = (items) => {
+          const at = items.findIndex(item => item.id === block.id);
+          if (at >= 0) { items.splice(at, 1); return true; }
+          return items.some(item => removeFrom(item.children || []));
+        };
+        removeFrom(state.blocks);
+        renderScript();
+        updateSaveStatus("Cambios sin guardar");
       });
-      el.append(params);
-    }
-    const detail = document.createElement("small");
-    detail.textContent = block.description + " · Arrastra para reordenar";
-    el.append(detail);
-    stack.append(el);
-  });
+      controls.append(remove);
+
+      const label = document.createElement("span");
+      label.className = "script-label";
+      label.textContent = block.name;
+      el.append(controls, label);
+
+      const values = [...block.name.matchAll(/-?\d+(?:\.\d+)?/g)];
+      if (values.length) {
+        const params = document.createElement("div");
+        params.className = "script-parameters";
+        values.forEach((match, parameterIndex) => {
+          const input = document.createElement("input");
+          input.type = "number"; input.step = "any"; input.value = match[0];
+          input.setAttribute("aria-label", "Parámetro " + (parameterIndex + 1) + " de " + block.name);
+          input.addEventListener("change", () => {
+            const current = [...block.name.matchAll(/-?\d+(?:\.\d+)?/g)];
+            const target = current[parameterIndex];
+            if (!target) return;
+            const next = Number(input.value);
+            if (!Number.isFinite(next)) return;
+            block.name = block.name.slice(0, target.index) + String(next) + block.name.slice(target.index + target[0].length);
+            renderScript(); updateSaveStatus("Cambios sin guardar");
+          });
+          params.append(input);
+        });
+        el.append(params);
+      }
+
+      if (isContainerBlock(block)) {
+        if (!Array.isArray(block.children)) block.children = [];
+        const body = document.createElement("div");
+        body.className = "block-children";
+        body.addEventListener("dragover", event => {
+          if (event.dataTransfer.types.includes("application/x-scratch-evolution-block")) event.preventDefault();
+        });
+        body.addEventListener("drop", event => {
+          const payload = event.dataTransfer.getData("application/x-scratch-evolution-block");
+          if (!payload) return;
+          event.preventDefault(); event.stopPropagation();
+          try {
+            const data = JSON.parse(payload);
+            if (data && typeof data.name === "string" && typeof data.category === "string") {
+              addBlock(data.name, data.description || "", data.category, block.children);
+              log("Bloque anidado en " + block.name + ".", "success");
+            }
+          } catch { log("No se pudo añadir el bloque anidado.", "warn"); }
+        });
+        const hint = document.createElement("small");
+        hint.className = "nested-hint";
+        hint.textContent = block.children.length ? "Cuerpo del bloque" : "Arrastra aquí bloques desde la biblioteca";
+        body.append(hint);
+        renderList(block.children, body, true);
+        el.append(body);
+      }
+      const detail = document.createElement("small");
+      detail.textContent = block.description + (nested ? "" : " · Arrastra para reordenar");
+      el.append(detail);
+      parent.append(el);
+    });
+  };
+  renderList(state.blocks, stack, false);
   $("#emptyBlocks").classList.toggle("hidden", state.blocks.length > 0);
 }
 function moveBlock(index, offset) {
@@ -410,48 +482,42 @@ function executeSimpleBlock(block) {
   }
   drawScene();
 }
-async function executeBlocks(runId) {
-  let pc = 0, operations = 0;
-  const blocks = state.blocks;
-  while (state.running && runId === runtime.runId && pc < blocks.length && operations < 10000) {
-    const block = blocks[pc++];
+async function executeBlockList(blocks, runId, depth = 0) {
+  if (depth > 20) { runtimeLog("Se alcanzó el límite de anidación."); return; }
+  for (const block of blocks) {
+    if (!state.running || runId !== runtime.runId) return;
     const name = block.name.toLowerCase();
-    operations++;
-    if (name.includes("al pulsar bandera")) {
-      // Bloque de evento: inicia la secuencia y no realiza una acción por sí mismo.
-    } else if (name.includes("por siempre")) {
-      const body = blocks.slice(pc);
-      while (state.running && runId === runtime.runId) {
-        for (const child of body) {
-          if (!state.running || runId !== runtime.runId) break;
-          if (child.name.toLowerCase().includes("esperar")) {
-            await sleep(1000);
-          } else executeSimpleBlock(child);
-          await sleep(16);
-        }
-        if (!body.length) break;
+    if (name.includes("por siempre")) {
+      let cycles = 0;
+      while (state.running && runId === runtime.runId && cycles++ < 10000) {
+        await executeBlockList(block.children || [], runId, depth + 1);
+        if (!(block.children || []).length) break;
+        await sleep(16);
       }
-      break;
-    } else if (name.includes("repetir")) {
+      if (cycles >= 10000) runtimeLog("Bucle detenido por el límite de seguridad.");
+      return;
+    }
+    if (name.includes("repetir")) {
       const count = Math.max(0, Math.min(1000, Number(name.match(/\d+/)?.[0] || 10)));
-      const body = blocks.slice(pc);
       for (let i = 0; i < count && state.running && runId === runtime.runId; i++) {
-        for (const child of body) {
-          if (!state.running || runId !== runtime.runId) break;
-          if (child.name.toLowerCase().includes("esperar")) await sleep(1000);
-          else executeSimpleBlock(child);
-          await sleep(16);
-        }
+        await executeBlockList(block.children || [], runId, depth + 1);
       }
-      break;
-    } else if (name.includes("esperar")) {
+      continue;
+    }
+    if (name.includes("si ... entonces")) {
+      // El contenedor condicional queda preparado; su condición editable llegará en una versión posterior.
+      continue;
+    }
+    if (name.includes("esperar")) {
       await sleep(Math.max(0, Math.min(30000, Number(name.match(/\d+(?:\.\d+)?/)?.[0] || 1) * 1000)));
-    } else {
+    } else if (!name.includes("al pulsar bandera") && !name.includes("al pulsar tecla") && !name.includes("al recibir mensaje")) {
       executeSimpleBlock(block);
       await sleep(16);
     }
   }
-  if (operations >= 10000) runtimeLog("Se detuvo la secuencia por alcanzar el límite de seguridad.");
+}
+async function executeBlocks(runId) {
+  await executeBlockList(state.blocks, runId);
   if (runId === runtime.runId) runtime.active = false;
 }
 function runGame() {
@@ -525,7 +591,7 @@ function importProject(file) {
     try {
       const data = JSON.parse(reader.result);
       if (data.format !== "scratch-evolution" || !Array.isArray(data.objects) || !Array.isArray(data.blocks)) throw new Error("Formato de proyecto no reconocido.");
-      state.blocks = data.blocks; state.objects = data.objects; state.showGrid = data.showGrid !== false;
+      state.blocks = normalizeBlockTree(data.blocks); state.objects = data.objects; state.showGrid = data.showGrid !== false;
       $("#projectName").value = data.name || "Proyecto importado";
       renderScript(); selectObject(state.objects[0]?.id); setMode(data.mode === "game" ? "game" : "blocks");
       log("Proyecto importado correctamente.", "success");
@@ -611,7 +677,7 @@ if (saved) {
   try {
     const data = JSON.parse(saved);
     if (data.format === "scratch-evolution") {
-      state.blocks = data.blocks || []; state.objects = data.objects || state.objects; state.showGrid = data.showGrid !== false;
+      state.blocks = normalizeBlockTree(data.blocks || []); state.objects = data.objects || state.objects; state.showGrid = data.showGrid !== false;
       $("#projectName").value = data.name || "Mi primer proyecto";
       renderScript();
     }
