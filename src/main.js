@@ -182,17 +182,15 @@ function renderScript() {
 
       const controls = document.createElement("div");
       controls.className = "script-controls";
-      if (!nested) {
-        const up = document.createElement("button");
-        up.type = "button"; up.textContent = "↑"; up.title = "Mover bloque arriba";
-        up.disabled = index === 0;
-        up.addEventListener("click", () => moveBlock(index, -1));
-        const down = document.createElement("button");
-        down.type = "button"; down.textContent = "↓"; down.title = "Mover bloque abajo";
-        down.disabled = index === list.length - 1;
-        down.addEventListener("click", () => moveBlock(index, 1));
-        controls.append(up, down);
-      }
+      const up = document.createElement("button");
+      up.type = "button"; up.textContent = "↑"; up.title = "Mover bloque arriba";
+      up.disabled = index === 0;
+      up.addEventListener("click", () => moveBlockInList(list, index, -1));
+      const down = document.createElement("button");
+      down.type = "button"; down.textContent = "↓"; down.title = "Mover bloque abajo";
+      down.disabled = index === list.length - 1;
+      down.addEventListener("click", () => moveBlockInList(list, index, 1));
+      controls.append(up, down);
       const remove = document.createElement("button");
       remove.type = "button"; remove.className = "script-remove";
       remove.textContent = "×"; remove.title = "Eliminar bloque";
@@ -235,6 +233,30 @@ function renderScript() {
         el.append(params);
       }
 
+      if (block.name.toLowerCase().includes("si ... entonces")) {
+        const condition = document.createElement("select");
+        condition.className = "condition-select";
+        condition.setAttribute("aria-label", "Condición del bloque");
+        const choices = [
+          ["points-positive", "puntos > 0"],
+          ["points-zero", "puntos = 0"],
+          ["space-pressed", "tecla espacio pulsada"],
+          ["player-visible", "objeto visible"]
+        ];
+        choices.forEach(([value, labelText]) => {
+          const option = document.createElement("option");
+          option.value = value; option.textContent = labelText;
+          condition.append(option);
+        });
+        condition.value = block.condition || "points-positive";
+        block.condition = condition.value;
+        condition.addEventListener("change", () => {
+          block.condition = condition.value;
+          updateSaveStatus("Cambios sin guardar");
+        });
+        el.append(condition);
+      }
+
       if (isContainerBlock(block)) {
         if (!Array.isArray(block.children)) block.children = [];
         const body = document.createElement("div");
@@ -270,12 +292,25 @@ function renderScript() {
   renderList(state.blocks, stack, false);
   $("#emptyBlocks").classList.toggle("hidden", state.blocks.length > 0);
 }
-function moveBlock(index, offset) {
+function moveBlockInList(list, index, offset) {
   const target = index + offset;
-  if (target < 0 || target >= state.blocks.length) return;
-  [state.blocks[index], state.blocks[target]] = [state.blocks[target], state.blocks[index]];
+  if (target < 0 || target >= list.length) return;
+  [list[index], list[target]] = [list[target], list[index]];
   renderScript();
   updateSaveStatus("Cambios sin guardar");
+}
+function moveBlock(index, offset) {
+  moveBlockInList(state.blocks, index, offset);
+}
+function evaluateCondition(block) {
+  const player = currentPlayer();
+  switch (block.condition || "points-positive") {
+    case "points-positive": return runtime.variables.puntos > 0;
+    case "points-zero": return runtime.variables.puntos === 0;
+    case "space-pressed": return state.keys.has(" ");
+    case "player-visible": return Boolean(player && player.visible);
+    default: return false;
+  }
 }
 $("#scriptStack").addEventListener("dragover", event => {
   if (event.dataTransfer.types.includes("application/x-scratch-evolution-block")) event.preventDefault();
@@ -505,7 +540,9 @@ async function executeBlockList(blocks, runId, depth = 0) {
       continue;
     }
     if (name.includes("si ... entonces")) {
-      // El contenedor condicional queda preparado; su condición editable llegará en una versión posterior.
+      if (evaluateCondition(block)) {
+        await executeBlockList(block.children || [], runId, depth + 1);
+      }
       continue;
     }
     if (name.includes("esperar")) {
@@ -692,4 +729,4 @@ renderBlockLibrary();
 renderObjects();
 selectObject(state.selectedId);
 drawScene();
-log("Scratch Evolution v0.3.0 inicializado.");
+log("Scratch Evolution v0.4.0 inicializado.");
