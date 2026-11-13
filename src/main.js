@@ -610,9 +610,14 @@ $$(".category[data-category]").forEach(btn => btn.addEventListener("click", () =
 $("#searchToggle").addEventListener("click", () => $("#searchWrap").classList.toggle("visible"));
 $("#searchInput").addEventListener("input", e => renderBlockLibrary(e.target.value));
 $("#addStarter").addEventListener("click", () => {
-  addBlock("Al pulsar bandera verde", "Evento de inicio", "events");
-  addBlock("Por siempre", "Bucle continuo", "control");
-  addBlock("Mover 10 pasos", "Cambia la posición del objeto", "motion");
+  const eventBlock = {id: crypto.randomUUID(), name: "Al pulsar bandera verde", description: "Evento de inicio", category: "events"};
+  const loopBlock = {id: crypto.randomUUID(), name: "Por siempre", description: "Bucle continuo", category: "control", children: [
+    {id: crypto.randomUUID(), name: "Mover 10 pasos", description: "Cambia la posición del objeto", category: "motion"}
+  ]};
+  state.blocks.push(eventBlock, loopBlock);
+  renderScript();
+  log("Plantilla inicial creada con un bloque anidado.", "success");
+  updateSaveStatus("Cambios sin guardar");
 });
 $("#runBtn").addEventListener("click", runGame);
 $("#saveBtn").addEventListener("click", saveProject);
@@ -687,4 +692,4 @@ renderBlockLibrary();
 renderObjects();
 selectObject(state.selectedId);
 drawScene();
-log("Scratch Evolution v0.2.0 inicializado.");
+log("Scratch Evolution v0.3.0 inicializado.");
