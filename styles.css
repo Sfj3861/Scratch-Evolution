@@ -21,3 +21,12 @@
 .script-block small{user-select:none}
 #gameCanvas{touch-action:none;cursor:grab}
 #gameCanvas:active{cursor:grabbing}
+
+
+/* Nested visual block containers */
+.script-block.nested-block{min-width:230px;margin:6px 0 6px 16px;padding:9px 12px 10px 14px;box-shadow:none;border:1px solid #ffffff24}
+.block-children{margin:10px 0 2px 2px;padding:10px 10px 10px 12px;min-height:48px;border-left:3px solid #ffffff65;border-radius:0 7px 7px 0;background:#09132638;display:flex;flex-direction:column;gap:5px}
+.block-children:has(.nested-hint:only-child){border:1px dashed #ffffff55}
+.nested-hint{display:block;color:#ffffffa0;font-size:9px!important;font-weight:400!important;margin:0 0 3px!important;letter-spacing:.2px}
+.script-block.nested-block .script-controls{top:5px;right:5px}
+.script-block.nested-block .script-controls button{min-width:20px;height:20px}
