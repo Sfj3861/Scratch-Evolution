@@ -7,13 +7,17 @@ Entorno de creación con dos espacios integrados:
 
 ## Estado actual
 
-**Pre-alpha 0.2.0.** Esta primera entrega es una base web interactiva; todavía no es una implementación completa de TurboWarp ni un motor de videojuegos terminado.
+**Pre-alpha 0.3.0.** Esta primera entrega es una base web interactiva; todavía no es una implementación completa de TurboWarp ni un motor de videojuegos terminado.
 
 Incluye:
 - Interfaz adaptable en español.
 - Cambio entre Blocks Studio y Game Studio.
 - Biblioteca de bloques y pila visual de scripts.
 - Parámetros numéricos editables directamente en los bloques.
+- Contenedores visuales para bloques de control con cuerpos anidados.
+- Arrastrar bloques desde la biblioteca directamente al interior de bucles.
+- Ejecución recursiva de bucles `repetir` y `por siempre` con límite de seguridad.
+- Migración automática de proyectos antiguos con bucles guardados en una pila plana.
 - Incorporación de bloques desde la biblioteca mediante clic o arrastrar y soltar.
 - Reordenación de scripts mediante arrastrar y soltar o controles de flecha.
 - Movimiento de objetos en Game Studio arrastrándolos directamente sobre el escenario.
@@ -41,7 +45,7 @@ No requiere instalar dependencias. Abre `index.html` mediante un servidor estát
 
 1. Integrar los componentes de TurboWarp respetando sus licencias y avisos.
 2. Implementar un modelo de proyecto compartido y versionado.
-3. Ampliar el intérprete con bloques anidados, condiciones y eventos de teclado.
+3. Completar las condiciones `si... entonces`, eventos de teclado y reordenación de bloques anidados.
 4. Incorporar física 2D, colisiones y un editor de niveles.
 5. Integrar TurboWarp VM, añadir pruebas automatizadas y exportación HTML5.
 
@@ -57,4 +61,4 @@ https://docs.turbowarp.org/development
 
 ### Limitaciones del intérprete inicial
 
-El intérprete actual es experimental: los bloques de repetición y por siempre toman como cuerpo los bloques que aparecen después de ellos en la pila; todavía no hay bloques anidados ni conexiones visuales entre bloques. No sustituye a la VM de Scratch/TurboWarp.
+El intérprete actual es experimental. Los bloques `repetir` y `por siempre` admiten cuerpos anidados y ejecución recursiva. El bloque `si... entonces` ya tiene contenedor visual, pero todavía no evalúa condiciones. Los eventos de inicio/teclado y varios bloques de sensores siguen pendientes. No sustituye a la VM de Scratch/TurboWarp.
